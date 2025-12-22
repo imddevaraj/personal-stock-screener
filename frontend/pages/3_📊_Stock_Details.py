@@ -16,7 +16,7 @@ st.markdown("---")
 client = get_api_client()
 
 # Stock selector
-stocks = client.get_all_stocks(limit=1000)
+stocks = client.get_all_stocks(limit=500)
 if stocks:
     stock_symbols = sorted([s.get('symbol') for s in stocks if s.get('symbol')])
     selected_symbol = st.selectbox(
@@ -30,14 +30,19 @@ if stocks:
             stock_data = client.get_stock(selected_symbol)
         
         if stock_data:
+            # Parse nested response
+            stock_info = stock_data.get('stock', {})
+            latest_score = stock_data.get('latest_score', {}) or {}
+            fundamentals = stock_data.get('latest_fundamental', {}) or {}
+            
             # Header section
             col1, col2 = st.columns([2, 1])
             
             with col1:
-                st.header(f"{stock_data.get('symbol')} - {stock_data.get('name', 'N/A')}")
+                st.header(f"{stock_info.get('symbol')} - {stock_info.get('name', 'N/A')}")
             
             with col2:
-                composite_score = stock_data.get('composite_score', 0)
+                composite_score = latest_score.get('composite_score') or 0
                 color = get_score_color(composite_score)
                 st.markdown(f"""
                     <div style='text-align: center; padding: 1rem; background-color: #262730; border-radius: 0.5rem;'>
@@ -54,7 +59,7 @@ if stocks:
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                fundamental = stock_data.get('fundamental_score', 0)
+                fundamental = latest_score.get('fundamental_score') or 0
                 st.metric(
                     "Fundamental Score",
                     f"{fundamental:.1f}",
@@ -82,7 +87,7 @@ if stocks:
                 st.plotly_chart(fig_fund, use_container_width=True)
             
             with col2:
-                sentiment = stock_data.get('sentiment_score', 0)
+                sentiment = latest_score.get('sentiment_score') or 0
                 st.metric(
                     "Sentiment Score",
                     f"{sentiment:.1f}",
@@ -144,20 +149,20 @@ if stocks:
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                st.metric("PE Ratio", f"{stock_data.get('pe_ratio', 0):.2f}")
-                st.metric("PB Ratio", f"{stock_data.get('pb_ratio', 0):.2f}")
+                st.metric("PE Ratio", f"{fundamentals.get('pe_ratio') or 0:.2f}")
+                st.metric("PB Ratio", f"{fundamentals.get('pb_ratio') or 0:.2f}")
             
             with col2:
-                st.metric("ROE", f"{stock_data.get('roe', 0):.1f}%")
-                st.metric("ROCE", f"{stock_data.get('roce', 0):.1f}%")
+                st.metric("ROE", f"{fundamentals.get('roe') or 0:.1f}%")
+                st.metric("ROCE", f"{fundamentals.get('roce') or 0:.1f}%")
             
             with col3:
-                st.metric("Debt-to-Equity", f"{stock_data.get('debt_to_equity', 0):.2f}")
-                st.metric("Current Ratio", f"{stock_data.get('current_ratio', 0):.2f}")
+                st.metric("Debt-to-Equity", f"{fundamentals.get('debt_to_equity') or 0:.2f}")
+                st.metric("Current Ratio", f"{fundamentals.get('current_ratio') or 0:.2f}")
             
             with col4:
-                st.metric("Revenue Growth", f"{stock_data.get('revenue_growth_3y', 0):.1f}%")
-                st.metric("Profit Growth", f"{stock_data.get('profit_growth_3y', 0):.1f}%")
+                st.metric("Revenue Growth", f"{fundamentals.get('revenue_growth') or 0:.1f}%")
+                st.metric("Earnings Growth", f"{fundamentals.get('earnings_growth') or 0:.1f}%")
             
             st.markdown("---")
             
@@ -180,6 +185,44 @@ if stocks:
                         <div>Overall Sentiment: <span style='color: {sentiment_color}; font-weight: bold;'>{sentiment_label}</span></div>
                     </div>
                 """, unsafe_allow_html=True)
+            
+            st.markdown("---")
+
+            # Latest News & Sentiment
+            st.subheader("📰 Latest News & Sentiment")
+            
+            # Fetch recent sentiment data
+            news_sentiments = client.get_stock_sentiment(selected_symbol)
+            
+            if news_sentiments:
+                for item in news_sentiments:
+                    news = item.get('news', {})
+                    if not news:
+                        continue
+                        
+                    s_score = item.get('sentiment_score', 0)
+                    s_label = item.get('sentiment_label', 'neutral')
+                    
+                    # Sentiment icon
+                    icon = "🟢" if s_score >= 0.2 else "🔴" if s_score <= -0.2 else "⚪"
+                    color = get_score_color((s_score + 1) * 50)  # Map -1..1 to 0..100
+                    
+                    with st.container():
+                        st.markdown(f"""
+                        <div style="padding: 1rem; background-color: #1E1E1E; border-radius: 0.5rem; margin-bottom: 0.5rem; border-left: 5px solid {color}">
+                            <div style="font-size: 1.1rem; font-weight: bold;">
+                                <a href="{news.get('url', '#')}" target="_blank" style="text-decoration: none; color: white;">
+                                    {icon} {news.get('title', 'No Title')}
+                                </a>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.8rem; color: #888;">
+                                <span>{news.get('source', 'Unknown Source')} • {news.get('published_at', '')[:10]}</span>
+                                <span>Sentiment: {s_label.upper()} ({s_score:.2f})</span>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+            else:
+                st.info("No recent news articles found for this stock.")
             
             st.markdown("---")
             

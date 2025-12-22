@@ -132,6 +132,7 @@ class SentimentScoreResponse(SentimentScoreBase):
     stock_id: int
     model_name: Optional[str] = None
     created_at: datetime
+    news: Optional[NewsResponse] = None
 
 
 # ============================================================================

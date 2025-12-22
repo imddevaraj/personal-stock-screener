@@ -74,6 +74,16 @@ class APIClient:
         result = _self._handle_response(response)
         return result if isinstance(result, list) else []
 
+    @st.cache_data(ttl=300)
+    def get_stock_sentiment(_self, symbol: str, limit: int = 20) -> List[Dict[str, Any]]:
+        """Get recent sentiment scores with news details."""
+        response = _self.session.get(
+            f"{_self.base_url}/stocks/{symbol}/sentiment",
+            params={"limit": limit}
+        )
+        result = _self._handle_response(response)
+        return result if isinstance(result, list) else []
+
 
 # Singleton instance
 @st.cache_resource

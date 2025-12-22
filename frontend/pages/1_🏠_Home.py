@@ -27,7 +27,7 @@ with col1:
 
 with col2:
     # Get total stocks count
-    stocks = client.get_all_stocks(limit=1000)
+    stocks = client.get_all_stocks(limit=500)
     st.metric(
         label="Total Stocks",
         value=len(stocks) if stocks else 0,

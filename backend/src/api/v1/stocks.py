@@ -144,6 +144,10 @@ def get_stock_scores(
     return scores
 
 
+from sqlalchemy.orm import Session, joinedload
+
+# ... (imports remain the same, just adding joinedload if not present, but for replace_file I will just modify the function)
+
 @router.get("/{symbol}/sentiment", response_model=List[SentimentScoreResponse])
 def get_stock_sentiment(
     symbol: str,
@@ -166,7 +170,9 @@ def get_stock_sentiment(
     if not stock:
         raise HTTPException(status_code=404, detail=f"Stock {symbol} not found")
     
-    sentiments = db.query(SentimentScore).filter(
+    sentiments = db.query(SentimentScore).options(
+        joinedload(SentimentScore.news)
+    ).filter(
         SentimentScore.stock_id == stock.id
     ).order_by(desc(SentimentScore.created_at)).limit(limit).all()
     

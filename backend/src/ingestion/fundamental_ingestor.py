@@ -35,7 +35,7 @@ class FundamentalIngestor(BaseIngestor):
         """
         all_data = {}
         
-        for symbol in settings.TRACKED_STOCKS:
+        for symbol in settings.get_tracked_stocks_list():
             self.logger.info(f"Fetching fundamental data for {symbol}")
             
             try:

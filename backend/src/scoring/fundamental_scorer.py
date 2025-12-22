@@ -160,7 +160,7 @@ class FundamentalScorer:
         
         # Normalize if total weight != 1 (due to missing metrics)
         if total_weight > 0:
-            final_score = (total_score / total_weight) * 100
+            final_score = total_score / total_weight
         else:
             final_score = 50  # Neutral score if no metrics available
         
