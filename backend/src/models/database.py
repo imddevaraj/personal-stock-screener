@@ -16,6 +16,18 @@ from sqlalchemy.sql import func
 Base = declarative_base()
 
 
+class User(Base):
+    """User model for authentication and profile management."""
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    full_name = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class Stock(Base):
     """Company/Stock master data."""
     

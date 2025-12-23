@@ -124,6 +124,14 @@ app.include_router(
     tags=["Alerts"]
 )
 
+from .api.v1 import auth
+
+app.include_router(
+    auth.router,
+    prefix=f"{settings.API_V1_PREFIX}/auth",
+    tags=["Authentication"]
+)
+
 
 if __name__ == "__main__":
     import uvicorn

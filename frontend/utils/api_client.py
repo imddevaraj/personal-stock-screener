@@ -30,18 +30,51 @@ class APIClient:
             st.error(f"Unexpected error: {e}")
             return {}
     
-    @st.cache_data(ttl=300)  # Cache for 5 minutes
+    def _get_headers(self) -> Dict[str, str]:
+        """Get headers with auth token if available."""
+        headers = {"Content-Type": "application/json"}
+        if "token" in st.session_state:
+            headers["Authorization"] = f"Bearer {st.session_state['token']}"
+        return headers
+
+    def login(self, email: str, password: str) -> Dict[str, Any]:
+        """Authenticate user."""
+        response = self.session.post(
+            f"{self.base_url}/auth/login",
+            data={"username": email, "password": password},
+            headers={"Content-Type": "application/x-www-form-urlencoded"}
+        )
+        return self._handle_response(response)
+
+    def signup(self, email: str, password: str, full_name: str) -> Dict[str, Any]:
+        """Register new user."""
+        response = self.session.post(
+            f"{self.base_url}/auth/signup",
+            json={"email": email, "password": password, "full_name": full_name}
+        )
+        return self._handle_response(response)
+
+    def get_me(self) -> Dict[str, Any]:
+        """Get current user details."""
+        response = self.session.get(
+            f"{self.base_url}/auth/me",
+            headers=self._get_headers()
+        )
+        return self._handle_response(response)
+
+    @st.cache_data(ttl=300)
     def get_health(_self) -> Dict[str, Any]:
         """Check API health status."""
         response = _self.session.get(f"{_self.base_url.replace('/api/v1', '')}/health")
         return _self._handle_response(response)
     
-    @st.cache_data(ttl=60)  # Cache for 1 minute
+    @st.cache_data(ttl=60)
     def get_all_stocks(_self, skip: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
         """Get all stocks with pagination."""
         response = _self.session.get(
             f"{_self.base_url}/stocks",
-            params={"skip": skip, "limit": limit}
+            params={"skip": skip, "limit": limit},
+            headers=_self._get_headers()
         )
         result = _self._handle_response(response)
         return result if isinstance(result, list) else []
@@ -49,7 +82,10 @@ class APIClient:
     @st.cache_data(ttl=60)
     def get_stock(_self, symbol: str) -> Optional[Dict[str, Any]]:
         """Get detailed stock information."""
-        response = _self.session.get(f"{_self.base_url}/stocks/{symbol}")
+        response = _self.session.get(
+            f"{_self.base_url}/stocks/{symbol}",
+            headers=_self._get_headers()
+        )
         return _self._handle_response(response)
     
     def screen_stocks(_self, filters: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -59,7 +95,8 @@ class APIClient:
         
         response = _self.session.post(
             f"{_self.base_url}/screen",
-            json=clean_filters
+            json=clean_filters,
+            headers=_self._get_headers()
         )
         result = _self._handle_response(response)
         return result if isinstance(result, list) else []
@@ -69,7 +106,8 @@ class APIClient:
         """Get stock rankings by type (composite, fundamental, sentiment)."""
         response = _self.session.get(
             f"{_self.base_url}/screen/rankings/{ranking_type}",
-            params={"limit": limit}
+            params={"limit": limit},
+            headers=_self._get_headers()
         )
         result = _self._handle_response(response)
         return result if isinstance(result, list) else []
@@ -79,14 +117,14 @@ class APIClient:
         """Get recent sentiment scores with news details."""
         response = _self.session.get(
             f"{_self.base_url}/stocks/{symbol}/sentiment",
-            params={"limit": limit}
+            params={"limit": limit},
+            headers=_self._get_headers()
         )
         result = _self._handle_response(response)
         return result if isinstance(result, list) else []
 
 
-# Singleton instance
-@st.cache_resource
+# Singleton instance - NOT cached to handle session state correctly
 def get_api_client() -> APIClient:
-    """Get cached API client instance."""
+    """Get API client instance."""
     return APIClient()

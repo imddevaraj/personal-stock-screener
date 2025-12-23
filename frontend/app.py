@@ -47,6 +47,18 @@ st.markdown("""
 st.title(f"{APP_ICON} {APP_TITLE}")
 st.markdown("---")
 
+# Sidebar Auth Status
+with st.sidebar:
+    if "token" in st.session_state and st.session_state["token"]:
+        user = st.session_state.get("user", {})
+        st.success(f"👋 Hi, {user.get('full_name', 'User')}")
+        if st.button("Log Out", type="secondary"):
+            st.session_state.clear()
+            st.rerun()
+    else:
+        st.info("💡 Log in to access all features")
+        st.page_link("pages/0_🔑_Login.py", label="Log In / Sign Up", icon="🔑")
+
 # Welcome message
 st.markdown("""
 ### Welcome to Personal Stock Screener! 👋
